@@ -7,7 +7,7 @@
   {default, "127.0.0.1"}
 ]}.
 
-{mapping, "bridge.nats.address", "emqx_bridge_nats.bridges", [
+{mapping, "bridge.nats.port", "emqx_bridge_nats.bridges", [
   {datatype, integer},
   {default, 4442}
 ]}.
@@ -26,6 +26,7 @@
 
 {translation, "emqx_bridge_nats.bridges", fun(Conf) ->
   NatsAddress = cuttlefish:conf_get("bridge.nats.address", Conf),
+  NatsPort = cuttlefish:conf_get("bridge.nats.port", Conf),
   NatsPayload = cuttlefish:conf_get("bridge.nats.payload", Conf),
   NatsEvent = cuttlefish:conf_get("bridge.nats.event", Conf),
   [{address, NatsAddress}, {payloadtopic, NatsPayload}, {eventtopic, NatsEvent}]
