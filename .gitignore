@@ -10,7 +10,7 @@ rel/example_project
 .rebar
 .erlang.mk/
 data/
-emqx_plugin_template.d
+emqx_bridge_nats.d
 .DS_Store
 erlang.mk
 _build/
