@@ -18,7 +18,7 @@
 
 -behaviour(supervisor).
 
--include("emqx_bridge_mqtt.hrl").
+-include("emqx_bridge_nats.hrl").
 
 -export([start_link/0]).
 

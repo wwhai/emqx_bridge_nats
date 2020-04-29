@@ -14,9 +14,9 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emqx_cli_demo).
+-module(emqx_bridge_nats_cli).
 
--include("emqx_bridge_mqtt.hrl").
+-include("emqx_bridge_nats.hrl").
 
 
 -export([cmd/1]).
