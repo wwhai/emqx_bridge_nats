@@ -172,14 +172,14 @@ on_message_acked(_ClientInfo = #{clientid := ClientId}, Message, _Env) ->
 teacup_init(_Env) ->
     {ok, Bridges} = application:get_env(emqx_bridge_nats, bridges),
     NatsAddress = proplists:get_value(address, Bridges),
-    %%NatsPort = proplists:get_value(port, Bridges),
+    NatsPort = proplists:get_value(port, Bridges),
     NatsPayloadTopic = proplists:get_value(payloadtopic, Bridges),
     NatsEventTopic = proplists:get_value(eventtopic, Bridges),
     ets:new(app_data, [named_table, protected, set, {keypos, 1}]),
     ets:insert(app_data, {nats_payload_topic, NatsPayloadTopic}),
     ets:insert(app_data, {nats_event_topic, NatsEventTopic}),
     io:format("Message delivered to client(~s)~n", [NatsAddress]),
-    {ok, Conn} = nats:connect(<<"127.0.0.1">>, 4222),
+    {ok, Conn} = nats:connect(list_to_binary(NatsAddress), NatsPort),
     ets:insert(app_data, {nats_conn, Conn}),
     {ok, Conn}.
 

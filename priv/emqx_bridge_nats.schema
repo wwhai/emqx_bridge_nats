@@ -10,7 +10,7 @@
 
 {mapping, "bridge.nats.port", "emqx_bridge_nats.bridges", [
   {datatype, integer},
-  {default, 4442}
+  {default, 4222}
 ]}.
 
 {mapping, "bridge.nats.payload", "emqx_bridge_nats.bridges", [
