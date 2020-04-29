@@ -25,4 +25,4 @@ clean: distclean
 
 distclean:
 	@rm -rf _build
-	@rm -f data/app.*.conf data/vm.*.args rebar.lock
+	@rm -f data/app.*.config data/vm.*.args rebar.lock

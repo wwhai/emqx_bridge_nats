@@ -29,5 +29,5 @@
   NatsPort = cuttlefish:conf_get("bridge.nats.port", Conf),
   NatsPayload = cuttlefish:conf_get("bridge.nats.payload", Conf),
   NatsEvent = cuttlefish:conf_get("bridge.nats.event", Conf),
-  [{address, NatsAddress}, {payloadtopic, NatsPayload}, {eventtopic, NatsEvent}]
+  [{address, NatsAddress}, {port, NatsPort}, {payloadtopic, NatsPayload}, {eventtopic, NatsEvent}]
 end}.
