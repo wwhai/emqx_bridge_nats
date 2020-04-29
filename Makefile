@@ -11,5 +11,5 @@ $(CUTTLEFISH_SCRIPT):
 	@${REBAR} get-deps
 	@if [ ! -f cuttlefish ]; then make -C _build/default/lib/cuttlefish; fi
 
-app.config::
-	./deps/cuttlefish/cuttlefish -l info -e etc/ -c etc/emqx_bridge_nats.conf -i priv/emqx_bridge_nats.schema -d data
+app.config: $(CUTTLEFISH_SCRIPT)
+	$(verbose) $(CUTTLEFISH_SCRIPT) -l info -e etc/ -c etc/emqx_bridge_nats.conf -i priv/emqx_bridge_nats.schema -d data
