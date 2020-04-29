@@ -52,6 +52,7 @@
 
 %% Called when the plugin application start
 load(Env) ->
+    teacup_init(Env),
     emqx:hook('client.connect',      {?MODULE, on_client_connect, [Env]}),
     emqx:hook('client.connack',      {?MODULE, on_client_connack, [Env]}),
     emqx:hook('client.connected',    {?MODULE, on_client_connected, [Env]}),
@@ -176,18 +177,18 @@ teacup_init(_Env) ->
     {ok, Conn} = nats:connect(<<NatsAddress>>, NatsPort, #{buffer_size => 10}),
     ets:insert(app_data, {nats_conn, Conn}).
 
-produce_nats_payload(Message) ->
-    [{_, Conn}] = ets:lookup(app_data, nats_conn),
-    [{_, Topic}] = ets:lookup(app_data, kafka_payload_topic),
-    Payload = jsx:encode(Message),
-    ok = nats:pup(Conn,list_to_binary(Topic), #{payload => Payload}).
+%%produce_nats_payload(Message) ->
+%%    [{_, Conn}] = ets:lookup(app_data, nats_conn),
+%%    [{_, Topic}] = ets:lookup(app_data, kafka_payload_topic),
+%%    Payload = jsx:encode(Message),
+%%    ok = nats:pup(Conn,list_to_binary(Topic), #{payload => Payload}).
     
 
-produce_nats_log(Message) ->
-    [{_, Conn}] = ets:lookup(app_data, nats_conn),
-    [{_, Topic}] = ets:lookup(app_data, kafka_event_topic),
-    Payload = jsx:encode(Message),
-    ok = nats:pup(Conn,list_to_binary(Topic), #{payload => Payload}).
+%%produce_nats_log(Message) ->
+%%    [{_, Conn}] = ets:lookup(app_data, nats_conn),
+%%    [{_, Topic}] = ets:lookup(app_data, kafka_event_topic),
+%%    Payload = jsx:encode(Message),
+%%    ok = nats:pup(Conn,list_to_binary(Topic), #{payload => Payload}).
 
 %% Called when the plugin application stop
 unload() ->

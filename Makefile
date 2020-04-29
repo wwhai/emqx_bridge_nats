@@ -4,25 +4,12 @@ REBAR_GIT_CLONE_OPTIONS += --depth 1
 export REBAR_GIT_CLONE_OPTIONS
 
 REBAR = rebar3
-all: compile
 
-compile:
-	$(REBAR) compile
+CUTTLEFISH_SCRIPT = _build/default/lib/cuttlefish/cuttlefish
 
-ct: compile
-	$(REBAR) as test ct -v
+$(CUTTLEFISH_SCRIPT):
+	@${REBAR} get-deps
+	@if [ ! -f cuttlefish ]; then make -C _build/default/lib/cuttlefish; fi
 
-eunit: compile
-	$(REBAR) as test eunit
-
-xref:
-	$(REBAR) xref
-
-cover:
-	$(REBAR) cover
-
-clean: distclean
-
-distclean:
-	@rm -rf _build
-	@rm -f data/app.*.config data/vm.*.args rebar.lock
+app.config::
+	./deps/cuttlefish/cuttlefish -l info -e etc/ -c etc/emqx_bridge_nats.conf -i priv/emqx_bridge_nats.schema -d data
