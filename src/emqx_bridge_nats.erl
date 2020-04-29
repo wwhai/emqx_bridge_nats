@@ -18,10 +18,6 @@
 
 -include_lib("emqx/include/emqx.hrl").
 
-
--import(string,[concat/2]).
--import(lists,[nth/2]). 
-
 -export([ load/1
         , unload/0
         ]).
@@ -191,7 +187,7 @@ produce_nats_log(Message) ->
     [{_, Conn}] = ets:lookup(app_data, nats_conn),
     [{_, Topic}] = ets:lookup(app_data, kafka_event_topic),
     Payload = jsx:encode(Message),
-    ok = ekaf:pup(Conn,list_to_binary(Topic), #{payload => Payload}).
+    ok = nats:pup(Conn,list_to_binary(Topic), #{payload => Payload}).
 
 %% Called when the plugin application stop
 unload() ->
