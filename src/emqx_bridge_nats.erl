@@ -14,9 +14,13 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emqx_plugin_template).
+-module(emqx_bridge_nats).
 
 -include_lib("emqx/include/emqx.hrl").
+
+
+-import(string,[concat/2]).
+-import(lists,[nth/2]). 
 
 -export([ load/1
         , unload/0
@@ -163,6 +167,31 @@ on_message_delivered(_ClientInfo = #{clientid := ClientId}, Message, _Env) ->
 on_message_acked(_ClientInfo = #{clientid := ClientId}, Message, _Env) ->
     io:format("Message acked by client(~s): ~s~n",
               [ClientId, emqx_message:format(Message)]).
+
+teacup_init(_Env) ->
+    {ok, Bridges} = application:get_env(emqx_bridge_nats, bridges),
+    NatsAddress = proplists:get_value(address, Bridges),
+    NatsPort = proplists:get_value(port, Bridges),
+    NatsPayloadTopic = proplists:get_value(payloadtopic, Bridges),
+    NatsEventTopic = proplists:get_value(eventtopic, Bridges),
+    ets:new(var, [named_table, protected, set, {keypos, 1}]),
+    ets:insert(app_data, {nats_payload_topic, NatsPayloadTopic}),
+    ets:insert(app_data, {nats_event_topic, NatsEventTopic}),
+    {ok, Conn} = nats:connect(<<NatsAddress>>, NatsPort, #{buffer_size => 10}),
+    ets:insert(app_data, {nats_conn, Conn}).
+
+produce_nats_payload(Message) ->
+    [{_, Conn}] = ets:lookup(app_data, nats_conn),
+    [{_, Topic}] = ets:lookup(app_data, kafka_payload_topic),
+    Payload = jsx:encode(Message),
+    ok = nats:pup(Conn,list_to_binary(Topic), #{payload => Payload}).
+    
+
+produce_nats_log(Message) ->
+    [{_, Conn}] = ets:lookup(app_data, nats_conn),
+    [{_, Topic}] = ets:lookup(app_data, kafka_event_topic),
+    Payload = jsx:encode(Message),
+    ok = ekaf:pup(Conn,list_to_binary(Topic), #{payload => Payload}).
 
 %% Called when the plugin application stop
 unload() ->

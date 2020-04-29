@@ -1,4 +1,4 @@
-emqx-plugin-template
+emqx_bridge_nats
 ====================
 
 This is a template plugin for the EMQ X broker. And you can see [Plugin Development Guide](https://docs.emqx.io/broker/v3/en/plugins.html#plugin-development-template) to learning how to use it.

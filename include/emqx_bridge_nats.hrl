@@ -14,17 +14,5 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emqx_plugin_template_sup).
-
--behaviour(supervisor).
-
--export([start_link/0]).
-
--export([init/1]).
-
-start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
-
-init([]) ->
-    {ok, { {one_for_all, 0, 1}, []} }.
+-define(APP, emqx_bridge_nats).
 

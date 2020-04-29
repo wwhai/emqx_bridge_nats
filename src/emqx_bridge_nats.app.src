@@ -1,0 +1,14 @@
+{application, emqx_bridge_nats,
+ [{description, "EMQ X Bridge to NATS"},
+  {vsn, "git"},
+  {modules, []},
+  {registered, [emqx_bridge_nats_sup]},
+  {applications, [kernel,stdlib,teacup]},
+  {mod, {emqx_bridge_nats_app,[]}},
+  {env, []},
+  {licenses, ["Apache-2.0"]},
+  {maintainers, ["Ramez Magdy <ramez.hanna.m@gmail.com>"]},
+  {links, [{"Homepage", "https://github.com/ramezmagdy/"},
+           {"Github", "https://github.com/ramezmagdy/emqx_bridge_nats"}
+          ]}
+ ]}.
