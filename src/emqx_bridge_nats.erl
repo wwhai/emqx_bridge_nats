@@ -4,7 +4,7 @@
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
-%%
+%%docker
 %%     http://www.apache.org/licenses/LICENSE-2.0
 %%
 %% Unless required by applicable law or agreed to in writing, software
@@ -17,9 +17,6 @@
 -module(emqx_bridge_nats).
 
 -include_lib("emqx/include/emqx.hrl").
-
--import(string, [concat/2]).
--import(lists, [nth/2]).
 
 -export([load/1, unload/0]).
 %% Client Lifecircle Hooks
