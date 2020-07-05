@@ -84,14 +84,14 @@ on_client_connack(ConnInfo = #{clientid := ClientId}, Rc, Props, _Env) ->
 on_client_connected(ClientInfo = #{clientid := ClientId}, ConnInfo, _Env) ->
     io:format("Client(~s) connected, ClientInfo:~n~p~n, ConnInfo:~n~p~n", [ClientId, ClientInfo, ConnInfo]),
     Event = [{action, <<"connected">>}, {clientid, ClientId}],
-    Topic = <<"iotpaas.devices.connected">>,
-    produce_nats_pub(Event, Topic).
+    PubTopic = <<"iotpaas.devices.connected">>,
+    produce_nats_pub(Event, PubTopic).
 
 on_client_disconnected(ClientInfo = #{clientid := ClientId}, ReasonCode, ConnInfo, _Env) ->
     io:format("Client(~s) disconnected due to ~p, ClientInfo:~n~p~n, ConnInfo:~n~p~n", [ClientId, ReasonCode, ClientInfo, ConnInfo]),
     Event = [{action, <<"disconnected">>}, {clientid, ClientId}, {reasonCode, ReasonCode}],
-    Topic = <<"iotpaas.devices.disconnected">>,
-    produce_nats_pub(Event, Topic).
+    PubTopic = <<"iotpaas.devices.disconnected">>,
+    produce_nats_pub(Event, PubTopic).
 
 on_client_authenticate(_ClientInfo = #{clientid := ClientId}, Result, _Env) ->
     io:format("Client(~s) authenticate, Result:~n~p~n", [ClientId, Result]),
@@ -120,14 +120,14 @@ on_session_created(#{clientid := ClientId}, SessInfo, _Env) ->
 on_session_subscribed(#{clientid := ClientId}, Topic, SubOpts, _Env) ->
     io:format("Session(~s) subscribed ~s with subopts: ~p~n", [ClientId, Topic, SubOpts]),
     Event = [{action, <<"subscribe">>}, {clientid, ClientId}, {topic, Topic}],
-    Topic = <<"iotpaas.devices.subscribe">>,
-    produce_nats_pub(Event, Topic).
+    PubTopic = <<"iotpaas.devices.subscribe">>,
+    produce_nats_pub(Event, PubTopic).
 
 on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, _Env) ->
     io:format("Session(~s) unsubscribed ~s with opts: ~p~n", [ClientId, Topic, Opts]),
     Event = [{action, <<"unsubscribe">>}, {clientid, ClientId}, {topic, Topic}],
-    Topic = <<"iotpaas.devices.unsubscribe">>,
-    produce_nats_pub(Event, Topic).
+    PubTopic = <<"iotpaas.devices.unsubscribe">>,
+    produce_nats_pub(Event, PubTopic).
 
 on_session_resumed(#{clientid := ClientId}, SessInfo, _Env) ->
     io:format("Session(~s) resumed, Session Info:~n~p~n", [ClientId, SessInfo]).
@@ -153,8 +153,8 @@ on_message_publish(Message = #message{topic = <<"$SYS/", _/binary>>}, _Env) ->
 on_message_publish(Message, _Env) ->
     io:format("Publish ~s~n", [emqx_message:format(Message)]),
     {ok, Payload} = format_payload(Message),
-    Topic = <<"iotpaas.devices.message">>,
-    produce_nats_pub(Payload, Topic),
+    PubTopic = <<"iotpaas.devices.message">>,
+    produce_nats_pub(Payload, PubTopic),
     {ok, Message}.
 
 on_message_dropped(#message{topic = <<"$SYS/", _/binary>>}, _By, _Reason, _Env) ->
@@ -164,22 +164,22 @@ on_message_dropped(Message, _By = #{node := Node}, Reason, _Env) ->
     io:format("Message dropped by node ~s due to ~s: ~s~n",
               [Node, Reason, emqx_message:format(Message)]),
     {ok, Payload} = format_payload(Message),
-    Topic = <<"iotpaas.devices.dropped">>,
-    produce_nats_pub(Payload, Topic).
+    PubTopic = <<"iotpaas.devices.dropped">>,
+    produce_nats_pub(Payload, PubTopic).
 
 on_message_delivered(_ClientInfo = #{clientid := ClientId}, Message, _Env) ->
     io:format("Message delivered to client(~s): ~s~n",
               [ClientId, emqx_message:format(Message)]),
     {ok, Payload} = format_payload(Message),
-    Topic = <<"iotpaas.devices.delivered">>,
-    produce_nats_pub(Payload, Topic),
+    PubTopic = <<"iotpaas.devices.delivered">>,
+    produce_nats_pub(Payload, PubTopic),
     {ok, Message}.
 
 on_message_acked(_ClientInfo = #{clientid := ClientId}, Message, _Env) ->
     io:format("Message acked by client(~s): ~s~n", [ClientId, emqx_message:format(Message)]),
     {ok, Payload} = format_payload(Message),
-    Topic = <<"iotpaas.devices.acked">>,
-    produce_nats_pub(Payload, Topic).
+    PubTopic = <<"iotpaas.devices.acked">>,
+    produce_nats_pub(Payload, PubTopic).
 
 teacup_init(_Env) ->
     {ok, Bridges} = application:get_env(emqx_bridge_nats, bridges),
