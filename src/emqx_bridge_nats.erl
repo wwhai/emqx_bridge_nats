@@ -118,10 +118,16 @@ on_session_created(#{clientid := ClientId}, SessInfo, _Env) ->
     io:format("Session(~s) created, Session Info:~n~p~n", [ClientId, SessInfo]).
 
 on_session_subscribed(#{clientid := ClientId}, Topic, SubOpts, _Env) ->
-    io:format("Session(~s) subscribed ~s with subopts: ~p~n", [ClientId, Topic, SubOpts]).
+    io:format("Session(~s) subscribed ~s with subopts: ~p~n", [ClientId, Topic, SubOpts]),
+    Event = [{action, <<"subscribe">>}, {clientid, ClientId}, {topic, Topic}],
+    Topic = <<"iotpaas.devices.subscribe">>,
+    produce_nats_pub(Event, Topic).
 
 on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, _Env) ->
-    io:format("Session(~s) unsubscribed ~s with opts: ~p~n", [ClientId, Topic, Opts]).
+    io:format("Session(~s) unsubscribed ~s with opts: ~p~n", [ClientId, Topic, Opts]),
+    Event = [{action, <<"unsubscribe">>}, {clientid, ClientId}, {topic, Topic}],
+    Topic = <<"iotpaas.devices.unsubscribe">>,
+    produce_nats_pub(Event, Topic).
 
 on_session_resumed(#{clientid := ClientId}, SessInfo, _Env) ->
     io:format("Session(~s) resumed, Session Info:~n~p~n", [ClientId, SessInfo]).
@@ -156,15 +162,24 @@ on_message_dropped(#message{topic = <<"$SYS/", _/binary>>}, _By, _Reason, _Env) 
 
 on_message_dropped(Message, _By = #{node := Node}, Reason, _Env) ->
     io:format("Message dropped by node ~s due to ~s: ~s~n",
-              [Node, Reason, emqx_message:format(Message)]).
+              [Node, Reason, emqx_message:format(Message)]),
+    {ok, Payload} = format_payload(Message),
+    Topic = <<"iotpaas.devices.dropped">>,
+    produce_nats_pub(Payload, Topic).
 
 on_message_delivered(_ClientInfo = #{clientid := ClientId}, Message, _Env) ->
     io:format("Message delivered to client(~s): ~s~n",
               [ClientId, emqx_message:format(Message)]),
+    {ok, Payload} = format_payload(Message),
+    Topic = <<"iotpaas.devices.delivered">>,
+    produce_nats_pub(Payload, Topic),
     {ok, Message}.
 
 on_message_acked(_ClientInfo = #{clientid := ClientId}, Message, _Env) ->
-    io:format("Message acked by client(~s): ~s~n", [ClientId, emqx_message:format(Message)]).
+    io:format("Message acked by client(~s): ~s~n", [ClientId, emqx_message:format(Message)]),
+    {ok, Payload} = format_payload(Message),
+    Topic = <<"iotpaas.devices.acked">>,
+    produce_nats_pub(Payload, Topic).
 
 teacup_init(_Env) ->
     {ok, Bridges} = application:get_env(emqx_bridge_nats, bridges),
@@ -193,13 +208,12 @@ produce_nats_pub(Message, Topic) ->
 
 format_payload(Message) ->
     io:format("ClientId: ~s~n", [Message#message.from]),
-    %%io:format("ClientId: ~w, Username: ~w, Topic: ~w, Payload: ~w, Timestamp: ~w~n",  [ClientId, Username, Topic, Payload, Timestamp]),
     Payload = [
         {action, <<"message_publish">>},
         {clientid, Message#message.from},
         {topic, Message#message.topic},
         {payload, Message#message.payload},
-        {ts, erlang:system_time(Message#message.timestamp)}
+        {time, erlang:system_time(Message#message.timestamp)}
     ],
         %%{time, Message#message.timestamp}],
         %%{username, Username},
