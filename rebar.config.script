@@ -1,5 +1,3 @@
-
-IntelliJ IDEA
 %%-*- mode: erlang -*-
 
 DEPS = case lists:keyfind(deps, 1, CONFIG) of
