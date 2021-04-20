@@ -14,59 +14,65 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emqx_bridge_nats).
+-module(emqx_plugin_template).
 
--include_lib("emqx/include/emqx.hrl").
+-include("emqx.hrl").
 
--export([load/1, unload/0]).
+-export([ load/1
+        , unload/0
+        ]).
+
 %% Client Lifecircle Hooks
--export([on_client_connect/3,
-         on_client_connack/4,
-         on_client_connected/3,
-         on_client_disconnected/4,
-         on_client_authenticate/3,
-         on_client_check_acl/5,
-         on_client_subscribe/4,
-         on_client_unsubscribe/4]).
+-export([ on_client_connect/3
+        , on_client_connack/4
+        , on_client_connected/3
+        , on_client_disconnected/4
+        , on_client_authenticate/3
+        , on_client_check_acl/5
+        , on_client_subscribe/4
+        , on_client_unsubscribe/4
+        ]).
+
 %% Session Lifecircle Hooks
--export([on_session_created/3,
-         on_session_subscribed/4,
-         on_session_unsubscribed/4,
-         on_session_resumed/3,
-         on_session_discarded/3,
-         on_session_takeovered/3,
-         on_session_terminated/4]).
+-export([ on_session_created/3
+        , on_session_subscribed/4
+        , on_session_unsubscribed/4
+        , on_session_resumed/3
+        , on_session_discarded/3
+        , on_session_takeovered/3
+        , on_session_terminated/4
+        ]).
+
 %% Message Pubsub Hooks
--export([on_message_publish/2,
-         on_message_delivered/3,
-         on_message_acked/3,
-         on_message_dropped/4]).
+-export([ on_message_publish/2
+        , on_message_delivered/3
+        , on_message_acked/3
+        , on_message_dropped/4
+        ]).
 
 %% Called when the plugin application start
 load(Env) ->
     {ok, _} = application:ensure_all_started(teacup_nats),
     teacup_init(Env),
-    %%{ok, Conn} = nats:connect(<<"127.0.0.1">>, 4222, #{buffer_size => 10}),
-    %%nats:pub(Conn, <<"teacup.control">>, #{payload => <<"{\"test\": \"user\"}">>}),
-    emqx:hook('client.connect', {?MODULE, on_client_connect, [Env]}),
-    emqx:hook('client.connack', {?MODULE, on_client_connack, [Env]}),
-    emqx:hook('client.connected', {?MODULE, on_client_connected, [Env]}),
+    emqx:hook('client.connect',      {?MODULE, on_client_connect, [Env]}),
+    emqx:hook('client.connack',      {?MODULE, on_client_connack, [Env]}),
+    emqx:hook('client.connected',    {?MODULE, on_client_connected, [Env]}),
     emqx:hook('client.disconnected', {?MODULE, on_client_disconnected, [Env]}),
     emqx:hook('client.authenticate', {?MODULE, on_client_authenticate, [Env]}),
-    emqx:hook('client.check_acl', {?MODULE, on_client_check_acl, [Env]}),
-    emqx:hook('client.subscribe', {?MODULE, on_client_subscribe, [Env]}),
-    emqx:hook('client.unsubscribe', {?MODULE, on_client_unsubscribe, [Env]}),
-    emqx:hook('session.created', {?MODULE, on_session_created, [Env]}),
-    emqx:hook('session.subscribed', {?MODULE, on_session_subscribed, [Env]}),
-    emqx:hook('session.unsubscribed', {?MODULE, on_session_unsubscribed, [Env]}),
-    emqx:hook('session.resumed', {?MODULE, on_session_resumed, [Env]}),
-    emqx:hook('session.discarded', {?MODULE, on_session_discarded, [Env]}),
-    emqx:hook('session.takeovered', {?MODULE, on_session_takeovered, [Env]}),
-    emqx:hook('session.terminated', {?MODULE, on_session_terminated, [Env]}),
-    emqx:hook('message.publish', {?MODULE, on_message_publish, [Env]}),
-    emqx:hook('message.delivered', {?MODULE, on_message_delivered, [Env]}),
-    emqx:hook('message.acked', {?MODULE, on_message_acked, [Env]}),
-    emqx:hook('message.dropped', {?MODULE, on_message_dropped, [Env]}).
+    emqx:hook('client.check_acl',    {?MODULE, on_client_check_acl, [Env]}),
+    emqx:hook('client.subscribe',    {?MODULE, on_client_subscribe, [Env]}),
+    emqx:hook('client.unsubscribe',  {?MODULE, on_client_unsubscribe, [Env]}),
+    emqx:hook('session.created',     {?MODULE, on_session_created, [Env]}),
+    emqx:hook('session.subscribed',  {?MODULE, on_session_subscribed, [Env]}),
+    emqx:hook('session.unsubscribed',{?MODULE, on_session_unsubscribed, [Env]}),
+    emqx:hook('session.resumed',     {?MODULE, on_session_resumed, [Env]}),
+    emqx:hook('session.discarded',   {?MODULE, on_session_discarded, [Env]}),
+    emqx:hook('session.takeovered',  {?MODULE, on_session_takeovered, [Env]}),
+    emqx:hook('session.terminated',  {?MODULE, on_session_terminated, [Env]}),
+    emqx:hook('message.publish',     {?MODULE, on_message_publish, [Env]}),
+    emqx:hook('message.delivered',   {?MODULE, on_message_delivered, [Env]}),
+    emqx:hook('message.acked',       {?MODULE, on_message_acked, [Env]}),
+    emqx:hook('message.dropped',     {?MODULE, on_message_dropped, [Env]}).
 
 %%--------------------------------------------------------------------
 %% Client Lifecircle Hooks
@@ -83,13 +89,13 @@ on_client_connack(ConnInfo = #{clientid := ClientId}, Rc, Props, _Env) ->
 
 on_client_connected(ClientInfo = #{clientid := ClientId}, ConnInfo, _Env) ->
     io:format("Client(~s) connected, ClientInfo:~n~p~n, ConnInfo:~n~p~n", [ClientId, ClientInfo, ConnInfo]),
-    Event = [{action, <<"connected">>}, {clientid, ClientId}],
+    Event = [{action, <<"connected">>}, {clientId, ClientId}],
     PubTopic = <<"iotpaas.devices.connected">>,
     produce_nats_pub(Event, PubTopic).
 
 on_client_disconnected(ClientInfo = #{clientid := ClientId}, ReasonCode, ConnInfo, _Env) ->
     io:format("Client(~s) disconnected due to ~p, ClientInfo:~n~p~n, ConnInfo:~n~p~n", [ClientId, ReasonCode, ClientInfo, ConnInfo]),
-    Event = [{action, <<"disconnected">>}, {clientid, ClientId}, {reasonCode, ReasonCode}],
+    Event = [{action, <<"disconnected">>}, {clientId, ClientId}],
     PubTopic = <<"iotpaas.devices.disconnected">>,
     produce_nats_pub(Event, PubTopic).
 
@@ -119,13 +125,13 @@ on_session_created(#{clientid := ClientId}, SessInfo, _Env) ->
 
 on_session_subscribed(#{clientid := ClientId}, Topic, SubOpts, _Env) ->
     io:format("Session(~s) subscribed ~s with subopts: ~p~n", [ClientId, Topic, SubOpts]),
-    Event = [{action, <<"subscribe">>}, {clientid, ClientId}, {topic, Topic}],
+    Event = [{action, <<"subscribe">>}, {clientId, ClientId}, {topic, Topic}],
     PubTopic = <<"iotpaas.devices.subscribe">>,
     produce_nats_pub(Event, PubTopic).
 
 on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, _Env) ->
     io:format("Session(~s) unsubscribed ~s with opts: ~p~n", [ClientId, Topic, Opts]),
-    Event = [{action, <<"unsubscribe">>}, {clientid, ClientId}, {topic, Topic}],
+    Event = [{action, <<"unsubscribe">>}, {clientId, ClientId}, {topic, Topic}],
     PubTopic = <<"iotpaas.devices.unsubscribe">>,
     produce_nats_pub(Event, PubTopic).
 
@@ -140,7 +146,10 @@ on_session_takeovered(_ClientInfo = #{clientid := ClientId}, SessInfo, _Env) ->
 
 on_session_terminated(_ClientInfo = #{clientid := ClientId}, Reason, SessInfo, _Env) ->
     io:format("Session(~s) is terminated due to ~p~nSession Info: ~p~n",
-              [ClientId, Reason, SessInfo]).
+              [ClientId, Reason, SessInfo])
+    Event = [{action, <<"terminated">>}, {clientId, ClientId}, {topic, Topic}],
+    PubTopic = <<"iotpaas.devices.terminated">>,
+    produce_nats_pub(Event, PubTopic).
 
 %%--------------------------------------------------------------------
 %% Message PubSub Hooks
@@ -191,7 +200,7 @@ teacup_init(_Env) ->
     ets:insert(app_data, {nats_payload_topic, NatsPayloadTopic}),
     ets:insert(app_data, {nats_event_topic, NatsEventTopic}),
     io:format("Message delivered to client(~s)~n", [NatsAddress]),
-    {ok, Conn} = nats:connect(list_to_binary(NatsAddress), NatsPort),
+    {ok, Conn} = nats:connect(list_to_binary(NatsAddress), NatsPort, #{reconnect => {Interval :: 500, MaxRetry :: infinity}}),
     ets:insert(app_data, {nats_conn, Conn}),
     {ok, Conn}.
 
@@ -210,34 +219,32 @@ format_payload(Message) ->
     io:format("ClientId: ~s~n", [Message#message.from]),
     Payload = [
         {action, <<"message_publish">>},
-        {clientid, Message#message.from},
+        {clientId, Message#message.from},
         {topic, Message#message.topic},
         {payload, Message#message.payload},
         {time, erlang:system_time(Message#message.timestamp)}
     ],
-        %%{time, Message#message.timestamp}],
-        %%{username, Username},
     {ok, Payload}.
 
 %% Called when the plugin application stop
 unload() ->
-    emqx:unhook('client.connect', {?MODULE, on_client_connect}),
-    emqx:unhook('client.connack', {?MODULE, on_client_connack}),
-    emqx:unhook('client.connected', {?MODULE, on_client_connected}),
+    emqx:unhook('client.connect',      {?MODULE, on_client_connect}),
+    emqx:unhook('client.connack',      {?MODULE, on_client_connack}),
+    emqx:unhook('client.connected',    {?MODULE, on_client_connected}),
     emqx:unhook('client.disconnected', {?MODULE, on_client_disconnected}),
     emqx:unhook('client.authenticate', {?MODULE, on_client_authenticate}),
-    emqx:unhook('client.check_acl', {?MODULE, on_client_check_acl}),
-    emqx:unhook('client.subscribe', {?MODULE, on_client_subscribe}),
-    emqx:unhook('client.unsubscribe', {?MODULE, on_client_unsubscribe}),
-    emqx:unhook('session.created', {?MODULE, on_session_created}),
-    emqx:unhook('session.subscribed', {?MODULE, on_session_subscribed}),
-    emqx:unhook('session.unsubscribed', {?MODULE, on_session_unsubscribed}),
-    emqx:unhook('session.resumed', {?MODULE, on_session_resumed}),
-    emqx:unhook('session.discarded', {?MODULE, on_session_discarded}),
-    emqx:unhook('session.takeovered', {?MODULE, on_session_takeovered}),
-    emqx:unhook('session.terminated', {?MODULE, on_session_terminated}),
-    emqx:unhook('message.publish', {?MODULE, on_message_publish}),
-    emqx:unhook('message.delivered', {?MODULE, on_message_delivered}),
-    emqx:unhook('message.acked', {?MODULE, on_message_acked}),
-    emqx:unhook('message.dropped', {?MODULE, on_message_dropped}).
+    emqx:unhook('client.check_acl',    {?MODULE, on_client_check_acl}),
+    emqx:unhook('client.subscribe',    {?MODULE, on_client_subscribe}),
+    emqx:unhook('client.unsubscribe',  {?MODULE, on_client_unsubscribe}),
+    emqx:unhook('session.created',     {?MODULE, on_session_created}),
+    emqx:unhook('session.subscribed',  {?MODULE, on_session_subscribed}),
+    emqx:unhook('session.unsubscribed',{?MODULE, on_session_unsubscribed}),
+    emqx:unhook('session.resumed',     {?MODULE, on_session_resumed}),
+    emqx:unhook('session.discarded',   {?MODULE, on_session_discarded}),
+    emqx:unhook('session.takeovered',  {?MODULE, on_session_takeovered}),
+    emqx:unhook('session.terminated',  {?MODULE, on_session_terminated}),
+    emqx:unhook('message.publish',     {?MODULE, on_message_publish}),
+    emqx:unhook('message.delivered',   {?MODULE, on_message_delivered}),
+    emqx:unhook('message.acked',       {?MODULE, on_message_acked}),
+    emqx:unhook('message.dropped',     {?MODULE, on_message_dropped}).
 
