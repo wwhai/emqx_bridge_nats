@@ -14,7 +14,7 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emqx_plugin_template).
+-module(emqx_bridge_nats).
 
 -include_lib("emqx/include/emqx.hrl").
 
@@ -145,9 +145,8 @@ on_session_takeovered(_ClientInfo = #{clientid := ClientId}, SessInfo, _Env) ->
     io:format("Session(~s) is takeovered. Session Info: ~p~n", [ClientId, SessInfo]).
 
 on_session_terminated(_ClientInfo = #{clientid := ClientId}, Reason, SessInfo, _Env) ->
-    io:format("Session(~s) is terminated due to ~p~nSession Info: ~p~n",
-              [ClientId, Reason, SessInfo])
-    Event = [{action, <<"terminated">>}, {clientId, ClientId}, {topic, Topic}],
+    io:format("Session(~s) is terminated due to ~p~nSession Info: ~p~n", [ClientId, Reason, SessInfo]),
+    Event = [{action, <<"terminated">>}, {clientId, ClientId}, {reason, Reason}],
     PubTopic = <<"iotpaas.devices.terminated">>,
     produce_nats_pub(Event, PubTopic).
 
@@ -200,7 +199,7 @@ teacup_init(_Env) ->
     ets:insert(app_data, {nats_payload_topic, NatsPayloadTopic}),
     ets:insert(app_data, {nats_event_topic, NatsEventTopic}),
     io:format("Message delivered to client(~s)~n", [NatsAddress]),
-    {ok, Conn} = nats:connect(list_to_binary(NatsAddress), NatsPort, #{reconnect => {Interval :: 500, MaxRetry :: infinity}}),
+    {ok, Conn} = nats:connect(list_to_binary(NatsAddress), NatsPort, #{reconnect => {500, 0}}),
     ets:insert(app_data, {nats_conn, Conn}),
     {ok, Conn}.
 
