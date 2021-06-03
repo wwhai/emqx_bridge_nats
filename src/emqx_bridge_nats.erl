@@ -152,19 +152,19 @@ on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, _Env) ->
     produce_nats_pub(Event, PubTopic).
 
 on_session_resumed(#{clientid := ClientId}, SessInfo, _Env) ->
-    io:format("Session(~s) resumed, Session Info:~n~p~n", [ClientId, SessInfo])
+    io:format("Session(~s) resumed, Session Info:~n~p~n", [ClientId, SessInfo]),
     Event = [{action, <<"session_resumed">>}, {clientId, ClientId}, {sessInfo, SessInfo}],
     PubTopic = <<"communication.things.events.resumed">>,
     produce_nats_pub(Event, PubTopic).
 
 on_session_discarded(_ClientInfo = #{clientid := ClientId}, SessInfo, _Env) ->
-    io:format("Session(~s) is discarded. Session Info: ~p~n", [ClientId, SessInfo])
+    io:format("Session(~s) is discarded. Session Info: ~p~n", [ClientId, SessInfo]),
     Event = [{action, <<"session_discarded">>}, {clientId, ClientId}, {sessInfo, SessInfo}],
     PubTopic = <<"communication.things.events.discarded">>,
     produce_nats_pub(Event, PubTopic).
 
 on_session_takeovered(_ClientInfo = #{clientid := ClientId}, SessInfo, _Env) ->
-    io:format("Session(~s) is takeovered. Session Info: ~p~n", [ClientId, SessInfo])
+    io:format("Session(~s) is takeovered. Session Info: ~p~n", [ClientId, SessInfo]),
     Event = [{action, <<"session_takeovered">>}, {clientId, ClientId}, {sessInfo, SessInfo}],
     PubTopic = <<"communication.things.events.takeovered">>,
     produce_nats_pub(Event, PubTopic).
