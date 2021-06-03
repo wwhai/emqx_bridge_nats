@@ -16,7 +16,8 @@
 
 -module(emqx_bridge_nats).
 
--include_lib("include/emqx.hrl").
+-include_lib("emqx/include/logger.hrl").
+-include_lib("emqx/include/emqx_mqtt.hrl").
 
 -export([ load/1
         , unload/0
