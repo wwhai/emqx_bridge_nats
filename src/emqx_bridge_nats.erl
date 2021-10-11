@@ -1,24 +1,9 @@
-%%--------------------------------------------------------------------
-%% Copyright (c) 2020 EMQ Technologies Co., Ltd. All Rights Reserved.
-%%
-%% Licensed under the Apache License, Version 2.0 (the "License");
-%% you may not use this file except in compliance with the License.
-%% You may obtain a copy of the License at
-%%docker
-%%     http://www.apache.org/licenses/LICENSE-2.0
-%%
-%% Unless required by applicable law or agreed to in writing, software
-%% distributed under the License is distributed on an "AS IS" BASIS,
-%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-%% See the License for the specific language governing permissions and
-%% limitations under the License.
-%%--------------------------------------------------------------------
-
 -module(emqx_bridge_nats).
 
 -include_lib("emqx/include/emqx.hrl").
 -include_lib("emqx/include/logger.hrl").
--include_lib("emqx/include/types.hrl").
+
+-include("emqx_bridge_nats.hrl").
 
 -export([load/1, unload/0]).
 %% Client Lifecircle Hooks
@@ -47,9 +32,6 @@
 %% Called when the plugin application start
 load(Env) ->
     {ok, _} = application:ensure_all_started(teacup_nats),
-    teacup_init(Env),
-    %%{ok, Conn} = nats:connect(<<"127.0.0.1">>, 4222, #{buffer_size => 10}),
-    %%nats:pub(Conn, <<"teacup.control">>, #{payload => <<"{\"test\": \"user\"}">>}),
     emqx:hook('client.connect', {?MODULE, on_client_connect, [Env]}),
     emqx:hook('client.connack', {?MODULE, on_client_connack, [Env]}),
     emqx:hook('client.connected', {?MODULE, on_client_connected, [Env]}),
@@ -102,21 +84,20 @@ on_client_connect(ConnInfo = #{clientid := ClientId}, Props, _Env) ->
     {ok, Props}.
 
 on_client_connack(ConnInfo = #{clientid := ClientId}, Rc, Props, _Env) ->
-    io:format("Client(~s) connack, ConnInfo: ~p, Rc: ~p, Props: ~p~n",
-              [ClientId, ConnInfo, Rc, Props]),
+    io:format("Client(~s) connack, ConnInfo: ~p, Rc: ~p, Props: ~p~n", [ClientId, ConnInfo, Rc, Props]),
     {ok, Props}.
 
-on_client_connected(ClientInfo = #{clientid := ClientId}, ConnInfo, _Env) ->
+on_client_connected(ClientInfo = #{clientid := ClientId}, ConnInfo, [_NatsAddress, _NatsPort, Conn]) ->
     io:format("Client(~s) connected, ClientInfo:~n~p~n, ConnInfo:~n~p~n", [ClientId, ClientInfo, ConnInfo]),
     Event = [{action, <<"connected">>}, {clientid, ClientId}],
-    PubTopic = <<"iotpaas.devices.connected">>,
-    produce_nats_pub(Event, PubTopic).
+    Topic = <<"emqx.stream.devices.connected">>,
+    produce_nats_pub(Event, Topic, Conn).
 
-on_client_disconnected(ClientInfo = #{clientid := ClientId}, ReasonCode, ConnInfo, _Env) ->
+on_client_disconnected(ClientInfo = #{clientid := ClientId}, ReasonCode, ConnInfo, [_NatsAddress, _NatsPort, Conn]) ->
     io:format("Client(~s) disconnected due to ~p, ClientInfo:~n~p~n, ConnInfo:~n~p~n", [ClientId, ReasonCode, ClientInfo, ConnInfo]),
     Event = [{action, <<"disconnected">>}, {clientid, ClientId}, {reasonCode, ReasonCode}],
-    PubTopic = <<"iotpaas.devices.disconnected">>,
-    produce_nats_pub(Event, PubTopic).
+    Topic = <<"emqx.stream.devices.disconnected">>,
+    produce_nats_pub(Event, Topic, Conn).
 
 on_client_authenticate(_ClientInfo = #{clientid := ClientId}, Result, _Env) ->
     io:format("Client(~s) authenticate, Result:~n~p~n", [ClientId, Result]),
@@ -142,17 +123,17 @@ on_client_unsubscribe(#{clientid := ClientId}, _Properties, TopicFilters, _Env) 
 on_session_created(#{clientid := ClientId}, SessInfo, _Env) ->
     io:format("Session(~s) created, Session Info:~n~p~n", [ClientId, SessInfo]).
 
-on_session_subscribed(#{clientid := ClientId}, Topic, SubOpts, _Env) ->
+on_session_subscribed(#{clientid := ClientId}, Topic, SubOpts, [_NatsAddress, _NatsPort, Conn]) ->
     io:format("Session(~s) subscribed ~s with subopts: ~p~n", [ClientId, Topic, SubOpts]),
     Event = [{action, <<"subscribe">>}, {clientid, ClientId}, {topic, Topic}],
-    PubTopic = <<"iotpaas.devices.subscribe">>,
-    produce_nats_pub(Event, PubTopic).
+    Topic = <<"emqx.stream.devices.subscribe">>,
+    produce_nats_pub(Event, Topic, Conn).
 
-on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, _Env) ->
+on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, [_NatsAddress, _NatsPort, Conn]) ->
     io:format("Session(~s) unsubscribed ~s with opts: ~p~n", [ClientId, Topic, Opts]),
     Event = [{action, <<"unsubscribe">>}, {clientid, ClientId}, {topic, Topic}],
-    PubTopic = <<"iotpaas.devices.unsubscribe">>,
-    produce_nats_pub(Event, PubTopic).
+    Topic = <<"emqx.stream.devices.unsubscribe">>,
+    produce_nats_pub(Event, Topic, Conn).
 
 on_session_resumed(#{clientid := ClientId}, SessInfo, _Env) ->
     io:format("Session(~s) resumed, Session Info:~n~p~n", [ClientId, SessInfo]).
@@ -175,71 +156,53 @@ on_session_terminated(_ClientInfo = #{clientid := ClientId}, Reason, SessInfo, _
 on_message_publish(Message = #message{topic = <<"$SYS/", _/binary>>}, _Env) ->
     {ok, Message};
 
-on_message_publish(Message, _Env) ->
+on_message_publish(Message, [_NatsAddress, _NatsPort, Conn]) ->
     io:format("Publish ~s~n", [emqx_message:format(Message)]),
     {ok, Payload} = format_payload(Message),
-    PubTopic = <<"iotpaas.devices.message">>,
-    produce_nats_pub(Payload, PubTopic),
+    Topic = <<"emqx.stream.devices.message">>,
+    produce_nats_pub(Payload, Topic, Conn),
     {ok, Message}.
 
 on_message_dropped(#message{topic = <<"$SYS/", _/binary>>}, _By, _Reason, _Env) ->
     ok;
 
-on_message_dropped(Message, _By = #{node := Node}, Reason, _Env) ->
+on_message_dropped(Message, _By = #{node := Node}, Reason, [_NatsAddress, _NatsPort, Conn]) ->
     io:format("Message dropped by node ~s due to ~s: ~s~n",
               [Node, Reason, emqx_message:format(Message)]),
     {ok, Payload} = format_payload(Message),
-    PubTopic = <<"iotpaas.devices.dropped">>,
-    produce_nats_pub(Payload, PubTopic).
+    Topic = <<"emqx.stream.devices.dropped">>,
+    produce_nats_pub(Payload, Topic, Conn).
 
-on_message_delivered(_ClientInfo = #{clientid := ClientId}, Message, _Env) ->
+on_message_delivered(_ClientInfo = #{clientid := ClientId}, Message, [_NatsAddress, _NatsPort, Conn]) ->
     io:format("Message delivered to client(~s): ~s~n",
               [ClientId, emqx_message:format(Message)]),
     {ok, Payload} = format_payload(Message),
-    PubTopic = <<"iotpaas.devices.delivered">>,
-    produce_nats_pub(Payload, PubTopic),
+    Topic = <<"emqx.stream.devices.delivered">>,
+    produce_nats_pub(Payload, Topic, Conn),
     {ok, Message}.
 
-on_message_acked(_ClientInfo = #{clientid := ClientId}, Message, _Env) ->
+on_message_acked(_ClientInfo = #{clientid := ClientId}, Message, [_NatsAddress, _NatsPort, Conn]) ->
     io:format("Message acked by client(~s): ~s~n", [ClientId, emqx_message:format(Message)]),
     {ok, Payload} = format_payload(Message),
-    PubTopic = <<"iotpaas.devices.acked">>,
-    produce_nats_pub(Payload, PubTopic).
+    Topic = <<"emqx.stream.devices.acked">>,
+    produce_nats_pub(Payload, Topic, Conn).
 
-teacup_init(_Env) ->
-    {ok, Bridges} = application:get_env(emqx_bridge_nats, bridges),
-    NatsAddress = proplists:get_value(address, Bridges),
-    NatsPort = proplists:get_value(port, Bridges),
-    NatsPayloadTopic = proplists:get_value(payloadtopic, Bridges),
-    NatsEventTopic = proplists:get_value(eventtopic, Bridges),
-    ets:new(app_data, [named_table, protected, set, {keypos, 1}]),
-    ets:insert(app_data, {nats_payload_topic, NatsPayloadTopic}),
-    ets:insert(app_data, {nats_event_topic, NatsEventTopic}),
-    io:format("Message delivered to client(~s)~n", [NatsAddress]),
-    {ok, Conn} = nats:connect(list_to_binary(NatsAddress), NatsPort),
-    ets:insert(app_data, {nats_conn, Conn}),
-    {ok, Conn}.
 
-%%produce_nats_payload(Message) ->
-    %%[{_, Conn}] = ets:lookup(app_data, nats_conn),
-    %%[{_, Topic}] = ets:lookup(app_data, nats_payload_topic),
-    %%Payload = jsx:encode(Message),
-    %%ok = nats:pub(Conn, Topic, #{payload => Payload}).
+%%--------------------------------------------------------------------
+%% Private functions
+%%--------------------------------------------------------------------
 
-produce_nats_pub(Message, Topic) ->
-    [{_, Conn}] = ets:lookup(app_data, nats_conn),
+produce_nats_pub(Message, Topic, Conn) ->
     Payload = emqx_json:encode(Message),
     ok = nats:pub(Conn, Topic, #{payload => Payload}).
 
 format_payload(Message) ->
-    io:format("ClientId: ~s~n", [Message#message.from]),
+    io:format("ClientId: ~s~n", [Message]),
     Payload = [
-        {action, <<"message_publish">>},
+        {id, Message#message.id},
+        {qos, Message#message.qos},
         {clientid, Message#message.from},
         {topic, Message#message.topic},
-        {payload, Message#message.payload},
-        {time, erlang:system_time(Message#message.timestamp)}
+        {payload, Message#message.payload}
     ],
-        %%{time, Message#message.timestamp}],
-        %%{username, Username},
     {ok, Payload}.

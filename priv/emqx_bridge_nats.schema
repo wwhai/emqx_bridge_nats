@@ -3,31 +3,12 @@
 %% Bridges
 %%--------------------------------------------------------------------
 
-{mapping, "bridge.nats.address", "emqx_bridge_nats.bridges", [
+{mapping, "bridge.nats.address", "emqx_bridge_nats.address", [
   {datatype, string},
   {default, "127.0.0.1"}
 ]}.
 
-{mapping, "bridge.nats.port", "emqx_bridge_nats.bridges", [
+{mapping, "bridge.nats.port", "emqx_bridge_nats.port", [
   {datatype, integer},
   {default, 4222}
 ]}.
-
-{mapping, "bridge.nats.payload", "emqx_bridge_nats.bridges", [
-  {default, "payload"},
-  {datatype, string}
-]}.
-
-{mapping, "bridge.nats.event", "emqx_bridge_nats.bridges", [
-  {default, "event"},
-  {datatype, string}
-]}.
-
-
-{translation, "emqx_bridge_nats.bridges", fun(Conf) ->
-  NatsAddress = cuttlefish:conf_get("bridge.nats.address", Conf),
-  NatsPort = cuttlefish:conf_get("bridge.nats.port", Conf),
-  NatsPayload = cuttlefish:conf_get("bridge.nats.payload", Conf),
-  NatsEvent = cuttlefish:conf_get("bridge.nats.event", Conf),
-  [{address, NatsAddress}, {port, NatsPort}, {payloadtopic, NatsPayload}, {eventtopic, NatsEvent}]
-end}.
