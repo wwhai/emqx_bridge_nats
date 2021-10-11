@@ -16,7 +16,9 @@ start(_StartType, _StartArgs) ->
     NatsPort = application:get_env(?APP, port, 4222),
     case nats:connect(list_to_binary(NatsAddress), NatsPort) of
         {ok, Conn} -> 
-            emqx_bridge_nats:load([NatsAddress, NatsPort, Conn]),
+            ets:new(?APP, [named_table, protected, set, {keypos, 1}]),
+            ets:insert(?APP, {nats_conn, Conn}),
+            emqx_bridge_nats:load([]),
             {ok, Sup};
         {error, Reason} -> {error, Reason}
     end.
