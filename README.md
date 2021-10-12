@@ -30,7 +30,47 @@ bridge.nats.address = 127.0.0.1
 bridge.nats.port = 4222
 
 ```
+## 订阅测试
+下面写个简单的 golang 客户端实现订阅:
 
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/nats-io/nats.go"
+)
+
+func main() {
+	nc, err := nats.Connect("nats://10.55.20.222:4222")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	nc.Subscribe("emqx.stream.devices.message", func(m *nats.Msg) {
+		fmt.Printf("message: %s\n", string(m.Data))
+	})
+	nc.Subscribe("emqx.stream.devices.connected", func(m *nats.Msg) {
+		fmt.Printf("connect: %s\n", string(m.Data))
+	})
+	nc.Subscribe("emqx.stream.devices.disconnected", func(m *nats.Msg) {
+		fmt.Printf("disconnect: %s\n", string(m.Data))
+	})
+
+	for {
+	}
+
+}
+
+```
+
+输出
+```
+disconnect: {"action":"disconnected","clientid":"mqttjs_661dd06d29","reasonCode":"remote"}
+connect: {"action":"connected","clientid":"mqttjs_661dd06d29"}
+message: {"id":1902572155295492,"qos":0,"clientid":"mqttjs_661dd06d29","topic":"testtopic","payload":"{ \"msg\": \"Hello, World!\" }"}
+```
 ## 社区
 - QQ群：475512169
 - 博客：https://wwhai.github.io
