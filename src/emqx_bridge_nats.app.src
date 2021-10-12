@@ -7,8 +7,8 @@
   {mod, {emqx_bridge_nats_app,[]}},
   {env, []},
   {licenses, ["Apache-2.0"]},
-  {maintainers, ["Ramez Magdy <ramez.hanna.m@gmail.com>"]},
-  {links, [{"Homepage", "https://github.com/ramezmagdy/"},
-           {"Github", "https://github.com/ramezmagdy/emqx_bridge_nats"}
+  {maintainers, ["wwhai <cnwwhai@gmail.com>"]},
+  {links, [{"Homepage", "https://github.com/wwhai/"},
+           {"Github", "https://github.com/wwhai/emqx_bridge_nats"}
           ]}
  ]}.

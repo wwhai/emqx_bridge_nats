@@ -32,27 +32,23 @@ unload() ->
 %%--------------------------------------------------------------------
 
 
-on_client_connected(ClientInfo = #{clientid := ClientId}, ConnInfo, _Env) ->
-    io:format("Client(~s) connected, ClientInfo:~n~p~n, ConnInfo:~n~p~n", [ClientId, ClientInfo, ConnInfo]),
+on_client_connected(_ClientInfo = #{clientid := ClientId}, _ConnInfo, _Env) ->
     Event = [{action, <<"connected">>}, {clientid, ClientId}],
     Topic = <<"emqx.stream.devices.connected">>,
     publish_to_nats(Event, Topic).
 
-on_client_disconnected(ClientInfo = #{clientid := ClientId}, ReasonCode, ConnInfo, _Env) ->
-    io:format("Client(~s) disconnected due to ~p, ClientInfo:~n~p~n, ConnInfo:~n~p~n", [ClientId, ReasonCode, ClientInfo, ConnInfo]),
+on_client_disconnected(_ClientInfo = #{clientid := ClientId}, ReasonCode, _ConnInfo, _Env) ->
     Event = [{action, <<"disconnected">>}, {clientid, ClientId}, {reasonCode, ReasonCode}],
     Topic = <<"emqx.stream.devices.disconnected">>,
     publish_to_nats(Event, Topic).
 
-on_client_authenticate(_ClientInfo = #{clientid := ClientId}, Result, _Env) ->
-    io:format("Client(~s) authenticate, Result:~n~p~n", [ClientId, Result]),
+on_client_authenticate(_ClientInfo, Result, _Env) ->
     {ok, Result}.
 
 on_message_publish(Message = #message{topic = <<"$SYS/", _/binary>>}, _Env) ->
     {ok, Message};
 
 on_message_publish(Message, _Env) ->
-    io:format("Publish ~s~n", [emqx_message:format(Message)]),
     {ok, Payload} = format_payload(Message),
     Topic = <<"emqx.stream.devices.message">>,
     publish_to_nats(Payload, Topic),
@@ -63,20 +59,12 @@ on_message_publish(Message, _Env) ->
 %%--------------------------------------------------------------------
 
 publish_to_nats(Message, Topic) ->
-    Payload = emqx_json:encode(Message),
-    [{_, Conn}] = ets:lookup(?APP, nats_conn),
-    case nats:pub(Conn, Topic, #{payload => Payload}) of
-        ok ->
-            ok;
-        {error, not_found} ->
-            %% TODO will start a process to reconnect
-            io:format("{error, not_found}, try to restart conn ~n")
-    end.
+    emqx_bridge_nats_conn:publish(emqx_json:encode(Message), Topic).
 
 format_payload(Message) ->
-    io:format("format_payload Message: ~p~n", [Message]),
+    <<T1:64, T2:48, T3:16>> = Message#message.id,
     Payload = [
-        {id, Message#message.id},
+        {id, T1 + T2 + T3},
         {qos, Message#message.qos},
         {clientid, Message#message.from},
         {topic, Message#message.topic},
